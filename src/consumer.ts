@@ -200,7 +200,7 @@ export class Consumer extends EventEmitter {
   private async processMessage(message: SQSMessage): Promise<void> {
     this.emit('message_received', message);
 
-    let heartbeat;
+    let heartbeat = null;
     try {
       if (this.heartbeatInterval) {
         heartbeat = this.startHeartbeat(async (elapsedSeconds) => {
@@ -208,6 +208,10 @@ export class Consumer extends EventEmitter {
         });
       }
       await this.executeHandler(message);
+      if (heartbeat) {
+        clearInterval(heartbeat);
+        heartbeat = null;
+      }
       await this.deleteMessage(message);
       this.emit('message_processed', message);
     } catch (err) {
@@ -217,7 +221,10 @@ export class Consumer extends EventEmitter {
         await this.changeVisabilityTimeout(message, 0);
       }
     } finally {
-      clearInterval(heartbeat);
+      if (heartbeat) {
+        clearInterval(heartbeat);
+        heartbeat = null;
+      }
     }
   }
 
@@ -335,7 +342,7 @@ export class Consumer extends EventEmitter {
       this.emit('message_received', message);
     });
 
-    let heartbeat;
+    let heartbeat = null;
     try {
       if (this.heartbeatInterval) {
         heartbeat = this.startHeartbeat(async (elapsedSeconds) => {
@@ -343,6 +350,10 @@ export class Consumer extends EventEmitter {
         });
       }
       await this.executeBatchHandler(messages);
+      if (heartbeat) {
+        clearInterval(heartbeat);
+        heartbeat = null;
+      }
       await this.deleteMessageBatch(messages);
       messages.forEach((message) => {
         this.emit('message_processed', message);
@@ -354,7 +365,10 @@ export class Consumer extends EventEmitter {
         await this.changeVisabilityTimeoutBatch(messages, 0);
       }
     } finally {
-      clearInterval(heartbeat);
+      if (heartbeat) {
+        clearInterval(heartbeat);
+        heartbeat = null;
+      }
     }
   }
 
